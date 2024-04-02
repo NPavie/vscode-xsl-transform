@@ -13,9 +13,9 @@ export class Runner
     xsltOutputChannel.show();
 
     this._process = spawn(command, args, { cwd: cwd, shell: true });
-    this._process.stdin.end(data, () =>       { xsltOutputChannel.append("File contents written to stdin"); xsltOutputChannel.hide();});
-    this._process.stdout.on('data', (data) => { this._chunks.push(data); });
-    this._process.stderr.on('data', (data) => { xsltOutputChannel.append(data.toString()); });
+    this._process.stdin?.end(data, () =>       { xsltOutputChannel.append("File contents written to stdin"); xsltOutputChannel.hide();});
+    this._process.stdout?.on('data', (data) => { this._chunks.push(data); });
+    this._process.stderr?.on('data', (data) => { xsltOutputChannel.append(data.toString()); });
 
     this._process.on("exit", async (code) => 
     {
@@ -37,14 +37,16 @@ export class Runner
         {
           window.showErrorMessage("Failed to show output in a new document");
           console.error(e);
+          
         }
       }
       else if (code === 1) 
       {
         window.showErrorMessage("XSL Transformation failed");
-        window.showInformationMessage("Ensure java is installed and added to environment variables.\n(in the terminal, `java --version` should return something)")
-        window.showInformationMessage("Ensure saxon is available.\n(check configuration)")
+        window.showInformationMessage("Ensure java is installed and added to environment variables.\n(in the terminal, `java --version` should return something)");
+        window.showInformationMessage("Ensure saxon is available.\n(check configuration)");
       }
+      xsltOutputChannel.show();
     });
   }
 }
