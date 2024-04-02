@@ -10,6 +10,7 @@ export interface XSLTransformation
 {
   xml: string;
   xslt: string;
+  catalogs: string[]|undefined;
   processor: string;
 }
 
@@ -43,6 +44,43 @@ async function getStylesheetFromConfiguration(context?: ExtensionContext | undef
   //console.log(`Stylesheet from config: ${stylesheetConf}`);
   return stylesheetConf;
 }
+
+/**
+ * Gets the main catalog defined in the xml.redhat extension settings (xml.catalogs)
+ * 
+ * @param context the ExtensionContext
+ * @returns stylesheet URI or undefined
+ */
+async function getCatalogsFromConfiguration(context?: ExtensionContext | undefined)
+{
+  try{
+    let configuration = workspace.getConfiguration("xml");
+    let catalogs = configuration.get<string[]>("catalogs");
+  
+    if (catalogs === undefined || catalogs.length === 0)
+    {
+      window.showWarningMessage("No catalog configured");
+      return;
+    }
+  
+    await Promise.all(
+      catalogs.map((catalog) => {
+        workspace.fs.stat(Uri.file(catalog!));
+      })
+    )
+      .catch((error) => {
+        window.showWarningMessage(`One or more configured catalogs do not exists. ${catalogs}`);
+        return;
+      });
+    //console.log(`Stylesheet from config: ${catalog}`);
+    return catalogs;
+  } catch (error) {
+    console.info("could not access to vscode", error);
+    return;
+  }
+  
+}
+
 
 
 /**
@@ -209,6 +247,7 @@ export async function runXSLTransformation(context?: ExtensionContext | undefine
   let stylesheetConf = await getStylesheetFromConfiguration(context);
   let stylesheetDef = await getStylesheetFromDocument();
   let stylesheetToUse = await determineStylesheetToUse(context!, stylesheetConf, stylesheetDef);
+  let catalogsToUse = await getCatalogsFromConfiguration(context!);
 
   let xml = window.activeTextEditor!.document.getText();
   if (xml === undefined || xml.length == 0)
@@ -227,6 +266,7 @@ export async function runXSLTransformation(context?: ExtensionContext | undefine
   {
     xml: xml,
     xslt: stylesheetToUse,
+    catalogs: catalogsToUse,
     processor: processor
   };
 
